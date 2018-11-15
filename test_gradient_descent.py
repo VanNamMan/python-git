@@ -3,6 +3,7 @@ import autograd.numpy as gnp
 import matplotlib.pyplot as plt
 import numpy as np
 
+#hello Github
 
 def cost(x,y):
     return (x**2+y-7)**2+(x-y+1)**2
