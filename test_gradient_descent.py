@@ -25,7 +25,6 @@ def plot(func,grad=None):
     Z = cost(XX,YY)
     CS = ax.contour(XX, YY, Z,levels=lv,cmap=plt.cm.Paired)
     cbar = plt.colorbar(CS)
-##    ax.clabel(CS, inline=1, fontsize=10)
 
     ax.set_xlim([-6.5,6.5])
     ax.set_ylim([-21.5,16.5])
