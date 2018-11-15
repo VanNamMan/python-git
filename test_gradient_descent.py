@@ -1,4 +1,4 @@
-#hello Github
+
 import autograd
 import autograd.numpy as gnp
 import matplotlib.pyplot as plt
