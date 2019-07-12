@@ -13,6 +13,7 @@ class myRect:
 class myCanvas(tk.Canvas):
     def __init__(self,parent,bg="black",w=300,h=200):
         super(myCanvas,self).__init__(parent,bg=bg,width=w,height=h)
+        self.bDrawAlign = False
         self.bDrawRect = False
         self.bDrawLine = False
         self.bActiveRect = False
@@ -42,10 +43,13 @@ class myCanvas(tk.Canvas):
                 break
         if not self.bDrawRect:
             return
+        self.bDrawAlign = False
         self.start = e
+
     def lButtonUp(self,e):
         if not self.bDrawRect:
             return
+        self.bDrawAlign = False
         self.bDrawRect = False
         self.bActiveRect = False
         
@@ -53,10 +57,11 @@ class myCanvas(tk.Canvas):
         if not self.bDrawRect:
             return
         self.delete("all")
-        self.create_line(0,e.y,self.winfo_width(),e.y
-                            ,fill=self.color,width=self.lw)
-        self.create_line(e.x,0,e.x,self.winfo_height()
-                            ,fill=self.color,width=self.lw)
+        if self.bDrawAlign:
+            self.create_line(0,e.y,self.winfo_width(),e.y
+                                ,fill=self.color,width=self.lw)
+            self.create_line(e.x,0,e.x,self.winfo_height()
+                                ,fill=self.color,width=self.lw)
         if self.bActiveRect:
             dx = e.x - self.start.x
             dy= e.y - self.start.y
@@ -70,7 +75,7 @@ class myCanvas(tk.Canvas):
                     self.create_rectangle(r[0],r[1],r[2],r[3]
                                     ,outline=self.color,width=self.lw)
             pass
-        else:
+        elif not self.bDrawAlign:
             if self.image:
                 self.showImage(self.image)
 
