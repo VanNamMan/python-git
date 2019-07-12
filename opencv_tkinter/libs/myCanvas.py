@@ -37,16 +37,16 @@ class myCanvas(tk.Canvas):
 
     def lButtonDown(self,e):
         p = [e.x,e.y]
-        for r in self.rects:
-            if self.ptInRect(p,r):
-                self.id_rect_active = self.rects.index(r)
-                self.bActiveRect = True
-                self.bDrawRect = True
-                self.rect_active = r
-                self.create_rectangle(r[0],r[1],r[2],r[3]
-                                    ,outline="yellow",width=self.lw)
- 
-                break
+        b,idRect = self.checkPoint(p)
+        # for r in self.rects:
+        #     if self.ptInRect(p,r):
+        #         self.id_rect_active = self.rects.index(r)
+        if b:
+            self.id_rect_active = idRect
+            self.rect_active = self.rects[idRect]
+            self.bActiveRect = True
+            self.bDrawRect = True
+            # self.create_rectangle(r[0],r[1],r[2],r[3]
         if not self.bDrawRect:
             return
         self.bDrawAlign = False
