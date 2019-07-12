@@ -9,8 +9,6 @@ class Point:
 		return "[{0},{1}]".format(self.x,self.y)
 	def __add__(self,other):
 		return Point(self.x+other.x,self.y+other.y)
-	def __sub__(self,other):
-		return Point(self.x-other.x,self.y-other.y)
 	def __mul__(self,k):
 		return Point(k*self.x,k*self.y)
 class Rect:
@@ -56,4 +54,3 @@ def get_meanStd(img,rois=-1):
 		return cv2.meanStdDev(img)
 	else:
 		return [cv2.meanStdDev(img[y1:y2,x1:x2]) for x1,y1,x2,y2 in rois]
-
