@@ -6,9 +6,8 @@ from libs.myDefine import *
 import cv2
 import os,time
 import numpy as np
-
-OPEN = "Open"
-DINO = "Dino"
+from libs.myCameraDlg import *
+import libs.myCamera as myCam
 
 
 
@@ -19,7 +18,9 @@ class myGui(tk.Frame):
 		self.file_types = [".jpg",".bmp",".png",".gif"]
 		# self.pilImg = None
 		self.image = None
+		self.devices = myCam.getBaslerDevices()
 		self.initUI()
+		
 	def initUI(self):	
 		self.master.title("Gui Tkinter")
 		self.master.bind("<Motion>",self.mouseMove)
@@ -122,8 +123,9 @@ class myGui(tk.Frame):
 		self.logText = tk.Listbox(f21)
 		self.logText.pack(fill="both",expand=1,anchor="s")
 
-		# ================= pack ===============
+		# ================= pack and binding==============
 		self.master.bind("<Key>",self.key)
+		self.master.protocol("WM_DELETE_WINDOW",self.on_closing)
 		self.pack(fill="both",expand=1)
 		
 
@@ -139,7 +141,9 @@ class myGui(tk.Frame):
 			self.canvas.rects.append(self.canvas.rect)
 		elif cmd == CLEAR_ALL:
 			self.canvas.resetCanvas()
-		pass
+		elif cmd == BASLER:
+			dlg = cameraDlg("Basler Camera",BASLER,self.devices)
+			pass
 	# event
 	def key(self,e):
 		print ("pressed",e.char)   
@@ -159,6 +163,13 @@ class myGui(tk.Frame):
 			print(x1,y1,x2,y2)
 			crop = self.image[y1:y2,x1:x2]
 			self.show(self.miniCanvas,crop)
+	def on_closing(self):
+		if self.devices is not None:
+			for device in self.devices:
+				dev,bGrabbing,sn = device
+				if bGrabbing :
+					dev.StopGrabbing()
+		self.master.destroy()
     # function
 	def log(self,txt):
 		txt = time.strftime("%H:%M:%S ")+txt
