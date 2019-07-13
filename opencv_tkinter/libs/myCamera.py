@@ -13,8 +13,47 @@ def getBaslerDevices():
 def createDevice(dev):
     return pylon.InstantCamera(pylon.TlFactory.GetInstance().CreateDevice(dev))
 
+import wmi
+import re
+ 
+def getAllDeviceUSB():
+    A = []
+    devs = []
+    wql = "Select * From Win32_USBControllerDevice"
+    for item in wmi.WMI().query(wql):
+        q = item.Dependent.Caption
+        if re.findall("HD Pro Webcam",q) or re.findall("Dino-Lite",q):
+            A.append(q)
+    device_name = removed(A)
+    for i in range(len(device_name)):
+        cap = cv2.VideoCapture(i)
+        devs.append([cap,cap.isOpened(),device_name[i]])
+    return devs
+def removed(lst):
+    hdPro = []
+    dino = []
+    i = 0
+    for a in lst:
+        if "HD Pro Webcam" in a:
+            hdPro.append(a+" %d"%i)
+            i+=1
+        else:
+            dino.append(a)         
+    return hdPro[::2] + dino
 
 
+
+# print(getAllDeviceUSB())
+
+# cap = cv2.VideoCapture(0)
+# while cap.isOpened():
+#     _,img = cap.read()
+#     cv2.imshow("",img)
+#     if cv2.waitKey(22) == ord("q"):
+#         cv2.imwrite("data/1.jpg",img)
+#         break
+# cap.release()
+# cv2.destroyAllWindows()
 
 # Pypylon get camera by serial number
 # serial_number = '21043274'

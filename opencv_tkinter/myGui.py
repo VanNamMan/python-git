@@ -1,11 +1,16 @@
 import tkinter as tk
 from tkinter import *
 from tkinter import filedialog,messagebox
+
 from libs.myCanvas import * 
 from libs.myDefine import * 
-import cv2
+
 import os,time
+import threading
+
+import cv2
 import numpy as np
+
 from libs.myCameraDlg import *
 import libs.myCamera as myCam
 
@@ -16,9 +21,12 @@ class myGui(tk.Frame):
 	def __init__(self):
 		super().__init__()
 		self.file_types = [".jpg",".bmp",".png",".gif"]
-		# self.pilImg = None
+		self.cameraDlgs = []
 		self.image = None
-		self.devices = myCam.getBaslerDevices()
+		self.bLock = True
+		self.bGetDevices = True
+		self.baslerDevices = myCam.getBaslerDevices()
+		self.usbDevices = myCam.getAllDeviceUSB()
 		self.initUI()
 		
 	def initUI(self):	
@@ -67,13 +75,20 @@ class myGui(tk.Frame):
 		toolbar.pack(fill="x",side="top")
 		picontrol.pack(fill="both",expand=1,side="top",anchor=W)
 
-		self.icon1 = ImageTk.PhotoImage(Image.open("res/rect.png"))
-		Button(toolbar,image=self.icon1,relief=FLAT
-			,command=lambda:self.command(RECT)).pack(side=LEFT,padx=2,pady=2)
+		self.icont1 = ImageTk.PhotoImage(Image.open("res/rect.png"))
+		self.toolRect = Button(toolbar,image=self.icont1,relief=FLAT
+			,command=lambda:self.command(RECT))
+		self.toolRect.pack(side=LEFT,padx=2,pady=2)
 		
-		self.icon2 = ImageTk.PhotoImage(Image.open("res/movies.png"))
-		Button(toolbar,image=self.icon2,relief=FLAT
-			,command=lambda:self.command(MOVIE)).pack(side=LEFT,padx=2,pady=2)
+		self.icont2 = ImageTk.PhotoImage(Image.open("res/movies.png"))
+		self.toolMovie = Button(toolbar,image=self.icont2,relief=FLAT
+			,command=lambda:self.command(MOVIE))
+		self.toolMovie.pack(side=LEFT,padx=2,pady=2)
+
+		self.icont3 = ImageTk.PhotoImage(Image.open("res/reload.png"))
+		self.toolReload = Button(toolbar,image=self.icont3,relief=FLAT
+			,command=lambda:self.command(RELOAD))
+		self.toolReload.pack(side=LEFT,padx=2,pady=2)
 
 		toolbar.pack(side=TOP,fill=X)
 		# ===
@@ -96,7 +111,6 @@ class myGui(tk.Frame):
 	        	popup.grab_release()
 
 		self.canvas.bind("<Button-3>", do_popup)
-
 		# ============== f2 Frame ==============
 		f21 = Frame(f2,width=300,height=550)
 		f22 = Frame(f2,width=300,height=50,bg=LIGHT_BLUE1)
@@ -105,35 +119,47 @@ class myGui(tk.Frame):
 			f.pack_propagate(0)
 
 		font = ("Arial",12,"bold")
+		wB,hB = 90,30
 
 		self.icon3 = ImageTk.PhotoImage(Image.open("res/start.png"))
-		Button(f22,text="Start",font=font,image=self.icon3,anchor="w",compound=LEFT
-			,command=lambda:self.command(START)).pack(side="left",fill="both",expand=1,anchor="s",padx=2,pady=2)
+		Button(f22,text="Start",font=font,image=self.icon3,anchor="w",compound=LEFT,height=hB,width=wB
+			,command=lambda:self.command(START)).grid(column=0,row=0,padx=2,pady=2)
 
 		self.icon4 = ImageTk.PhotoImage(Image.open("res/stop.png"))
-		Button(f22,text="Stop",font=font,image=self.icon4,compound=LEFT
-			,command=lambda:self.command(STOP)).pack(side="left",fill="both",expand=1,anchor="s",padx=2,pady=2)
+		Button(f22,text="Stop",font=font,image=self.icon4,compound=LEFT,height=hB,width=wB
+			,command=lambda:self.command(STOP)).grid(column=1,row=0,padx=2,pady=2)
 
 		self.icon5 = ImageTk.PhotoImage(Image.open("res/reset.png"))
-		Button(f22,text="Reset",font=font,image=self.icon5,compound=LEFT
-			,command=lambda:self.command(RESET)).pack(side="left",fill="both",expand=1,anchor="s",padx=2,pady=2)
+		Button(f22,text="Reset",font=font,image=self.icon5,compound=LEFT,height=hB,width=wB
+			,command=lambda:self.command(RESET)).grid(column=2,row=0,padx=2,pady=2)
 
+		self.icon6 = ImageTk.PhotoImage(Image.open("res/data.png"))
+		Button(f22,text="Log",font=font,image=self.icon6,compound=LEFT,height=hB,width=wB
+			,command=lambda:self.command(LOG)).grid(column=3,row=0,padx=2,pady=2)
+
+		self.lbClock = Label(f21,bg=LIGHT_BLUE1,fg=ORANGE,font=("Arial 40 bold"))
+		self.lbClock.pack(fill="both",expand=1,anchor="s")
 		self.miniCanvas = myCanvas(f21,bg=BLACK)
 		self.miniCanvas.pack(fill="both",expand=1,anchor="s")
 		self.logText = tk.Listbox(f21)
 		self.logText.pack(fill="both",expand=1,anchor="s")
 
 		# ================= pack and binding==============
+		
 		self.master.bind("<Key>",self.key)
 		self.master.protocol("WM_DELETE_WINDOW",self.on_closing)
 		self.pack(fill="both",expand=1)
+		self.master.state('zoomed')
+		# start thread
+		self.threadClock()
 		
-
 	# Command
 	def command(self,cmd):
 		print(cmd)
 		if cmd == OPEN:
 			self.load()
+		elif cmd == MOVIE:
+			pass
 		elif cmd == RECT:
 			self.canvas.bDrawRect = True
 			self.canvas.bDrawAlign = True
@@ -142,7 +168,12 @@ class myGui(tk.Frame):
 		elif cmd == CLEAR_ALL:
 			self.canvas.resetCanvas()
 		elif cmd == BASLER:
-			dlg = cameraDlg("Basler Camera",BASLER,self.devices)
+			dlg = cameraDlg("Basler Camera",BASLER,self.baslerDevices)
+			self.cameraDlgs.append(dlg)
+			pass
+		elif cmd == DINO:
+			dlg = cameraDlg("USB Camera",DINO,self.usbDevices)
+			self.cameraDlgs.append(dlg)
 			pass
 	# event
 	def key(self,e):
@@ -153,7 +184,15 @@ class myGui(tk.Frame):
 		if self.image is None:
 			return
 		r = self.getGeometry(self.canvas)
-		p = [e.x,e.y]
+		p = [e.x_root,e.y_root]
+
+		rReload = self.getGeometry(self.toolReload)
+
+		if self.canvas.ptInRect(p,rReload):
+			print("reload")
+		else:
+			print(False ,r, rReload, p)
+		
 		if not self.canvas.ptInRect(p,r):
 			return
 		if self.canvas.crop:
@@ -163,13 +202,7 @@ class myGui(tk.Frame):
 			print(x1,y1,x2,y2)
 			crop = self.image[y1:y2,x1:x2]
 			self.show(self.miniCanvas,crop)
-	def on_closing(self):
-		if self.devices is not None:
-			for device in self.devices:
-				dev,bGrabbing,sn = device
-				if bGrabbing :
-					dev.StopGrabbing()
-		self.master.destroy()
+	
     # function
 	def log(self,txt):
 		txt = time.strftime("%H:%M:%S ")+txt
@@ -188,7 +221,7 @@ class myGui(tk.Frame):
 				self.image = cv2.imread(filename)
 				self.show(self.canvas,self.image)
 	def getGeometry(self,item):
-		r = [item.winfo_x(),item.winfo_y(),item.winfo_width(),item.winfo_height()]
+		r = [item.winfo_rootx(),item.winfo_rooty(),item.winfo_width(),item.winfo_height()]
 		return r
 
 	def show(self,canvas,img):
@@ -201,6 +234,53 @@ class myGui(tk.Frame):
 	    pilImg = Image.fromarray(cvImg)
 	    photoImg = ImageTk.PhotoImage(image=pilImg)
 	    canvas.showImage(photoImg)
+	# threading
+	def threadClock(self):
+		thread = threading.Thread(target=self.loopClock)
+		thread.start()
+		pass
+	def loopClock(self):
+		while self.bLock:
+			strtime = time.strftime("%H:%M:%S")
+			self.lbClock["text"] = strtime
+			time.sleep(1)
+		pass
+	def threadGetDevices(self):
+		thread = threading.Thread(target=self.loopGetDevices)
+		thread.start()
+		pass
+	def loopGetDevices(self):
+		while self.bGetDevices:
+			self.releaseAllDevices()
+			self.baslerDevices = myCam.getBaslerDevices()
+			self.usbDevices = myCam.getAllDeviceUSB()
+			time.sleep(1)
+		pass
+	# ========== Closing ========
+	def __del__(self):
+		print ('GUI destructor called')
+	def releaseAllDevices(self):
+		if self.baslerDevices is not None:
+			for device in self.baslerDevices:
+				dev,bGrabbing,sn = device
+				if bGrabbing :
+					dev.StopGrabbing()
+		if self.usbDevices is not None:
+			for device in self.usbDevices:
+				dev,bOpened,sn = device
+				if bOpened :
+					dev.release()
+		pass
+	def on_closing(self):
+		print ('GUI closing called')
+		self.bLock = False
+		self.bGetDevices = False
+		for dlg in self.cameraDlgs:
+			if dlg.bLive:
+				messagebox.showinfo("Warnig!!!","Please stop camera before close!")
+				return
+		self.releaseAllDevices()
+		self.master.destroy()
 
 
 

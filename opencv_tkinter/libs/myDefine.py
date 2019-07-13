@@ -67,10 +67,12 @@ FS = "Font Scale"
 START = "Start"
 STOP = "Stop"
 RESET = "Reset"
+LOG = "Log"
 
 # toolbar
 RECT = "Rect"
 MOVIE = "Movie"
+RELOAD = "Reload"
 
 # popup menu
 ADD = "Add"

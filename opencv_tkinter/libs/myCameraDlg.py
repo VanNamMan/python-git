@@ -13,10 +13,15 @@ BASLER = "Basler"
 DINO = "Dino"
 
 class balserCamera:
-    def __init__(self,dev,bGrabbing,sn):
+    def __init__(self,dev,bGrabbing,strSerinumber):
         self.dev = dev
         self.bGrabbing = bGrabbing
-        self.sn = sn
+        self.sn = strSerinumber
+class usbCamera:
+    def __init__(self,dev,bOpened,deviceName):
+        self.dev = dev
+        self.bOpened = bOpened
+        self.deviceName = deviceName
 class cameraDlg(Toplevel):
     def __init__(self,title,cameraName,devices):
         super(cameraDlg,self).__init__(width=500,height=400)
@@ -33,14 +38,17 @@ class cameraDlg(Toplevel):
         self.canvas = Label(self,text="My Camera",bg=BLUE5,width=65,height=25)
         self.canvas.pack(fill="both")
         font = ("Arial 10 bold")
-        Button(self,text="Live",width=10,height=2,font=font
-                    ,command=self.live).pack(side=LEFT)
+        self.butLive = Button(self,text="Live",width=10,height=2,font=font
+                    ,command=self.live)
+        self.butLive.pack(side=LEFT)
 
-        Button(self,text="Stop",width=10,height=2,font=font
-                    ,command=self.stop).pack(side=LEFT)
+        self.butStop = Button(self,text="Stop",width=10,height=2,font=font
+                    ,command=self.stop)
+        self.butStop.pack(side=LEFT)
 
-        Button(self,text="Get Image",width=10,height=2,font=font
-                    ,command=self.getImage).pack(side=LEFT)
+        self.butGetImage = Button(self,text="Get Image",width=10,height=2,font=font
+                    ,command=self.getImage)
+        self.butGetImage.pack(side=LEFT)
 
         self.cbbDevies = ttk.Combobox(self,width=20)
         self.cbbDevies.pack(side=RIGHT,anchor=NE)
@@ -53,19 +61,32 @@ class cameraDlg(Toplevel):
         Label(self,text="Devies",width=10).pack(side=RIGHT,anchor=NE)
     # command
     def live(self):
-        if self.cameraName == BASLER:
-            idCam = self.cbbDevies.get()
-            self.threadBalserCam(idCam)
-        pass
+        cbbCurrentText = self.cbbDevies.get()
+        if cbbCurrentText == "":
+            return
+        else:
+            if self.cameraName == BASLER:
+                self.threadBalserCam(cbbCurrentText)
+            if self.cameraName == DINO:
+                self.threadUsbCam(cbbCurrentText)
+            self.butLive.configure(state = DISABLED)
     def stop(self):
         self.bLive = False
+        self.butLive.configure(state = NORMAL)
         pass
     def getImage(self):
-        folder = "data/%s/"%self.curDevice.sn
-        if not os.path.exists(folder):
-            os.mkdir(folder)
-        fname = time.strftime("%d%m%y_%H%M%S.jpg")
-        cv2.imwrite(os.path.join(folder,fname),self.image)
+        if self.cameraName == BASLER:
+            folder = "data/%s/"%self.curDevice.sn
+            if not os.path.exists(folder):
+                os.mkdir(folder)
+            fname = time.strftime("%d%m%y_%H%M%S.jpg")
+            cv2.imwrite(os.path.join(folder,fname),self.image)
+        else:
+            folder = "data/%s/"%self.curDevice.deviceName
+            if not os.path.exists(folder):
+                os.mkdir(folder)
+            fname = time.strftime("%d%m%y_%H%M%S.jpg")
+            cv2.imwrite(os.path.join(folder,fname),self.image)
         pass  
     # ====funtion ======
     def show(self,canvas,img):
@@ -80,11 +101,13 @@ class cameraDlg(Toplevel):
         canvas["image"] = photoImg
         canvas.image = photoImg
     # thread
-    def threadBalserCam(self,idCam):
+    def threadBalserCam(self,strIdCam):
+        if self.bLive :
+            return
         camera = None
         for device in self.devices:
             dev,bGrabbing,sn = device
-            if sn == idCam:
+            if sn == strIdCam:
                 self.curDevice = balserCamera(dev,bGrabbing,sn)
                 break
         if self.curDevice.bGrabbing:
@@ -100,10 +123,40 @@ class cameraDlg(Toplevel):
                     time.sleep(0.02)
                     self.show(self.canvas,self.image)
         except:
-            camera.dev.StopGrabbing()
+            # camera.dev.StopGrabbing()
+            pass
 
+
+    def threadUsbCam(self,deviceName):
+        if self.bLive :
+            return
+        camera = None
+        for device in self.devices:
+            dev,bOpened,name = device
+            if name == deviceName:
+                self.curDevice = usbCamera(dev,bOpened,name)
+                break
+        if self.curDevice.bOpened:
+            self.bLive = True
+            thread = threading.Thread(target=self.loopUsbCam,args=(self.curDevice,))
+            thread.start()
+        pass
+    def loopUsbCam(self,camera):
+        try:
+            while camera.bOpened and self.bLive:
+                ret,image = camera.dev.read()
+                if ret:
+                    self.image = image
+                    time.sleep(0.02)
+                    self.show(self.canvas,self.image)
+        except:
+            pass
+        pass
     # =========Closing============
+    def __del__(self):
+        print ('Camera Dlg destructor called')
     def on_closing(self):
+        print ('Camera Dlg closing called')
         self.bLive = False
         self.destroy()
 

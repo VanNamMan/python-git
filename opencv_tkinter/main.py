@@ -7,6 +7,5 @@ def main():
     root.geometry("1000x600+30+30")
     app = myGui()
     root.mainloop()
-
 if __name__ == '__main__':
     main()
