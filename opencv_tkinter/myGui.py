@@ -14,24 +14,52 @@ import numpy as np
 from libs.myCameraDlg import *
 import libs.myCamera as myCam
 
-
+class CreateToolTip(object):
+    '''
+    create a tooltip for a given widget
+    '''
+    def __init__(self, widget, text='widget info'):
+        self.widget = widget
+        self.text = text
+        self.widget.bind("<Enter>", self.enter)
+        self.widget.bind("<Leave>", self.close)
+    def enter(self, event=None):
+        x = y = 0
+        x, y, cx, cy = self.widget.bbox("insert")
+        x += self.widget.winfo_rootx() + 25
+        y += self.widget.winfo_rooty() + 20
+        # creates a toplevel window
+        self.tw = tk.Toplevel(self.widget)
+        # Leaves only the label and removes the app window
+        self.tw.wm_overrideredirect(True)
+        self.tw.wm_geometry("+%d+%d" % (x, y))
+        label = tk.Label(self.tw, text=self.text, justify='left',
+                       background='yellow', relief='solid', borderwidth=1,
+                       font=("times", "8", "normal"))
+        label.pack(ipadx=1)
+    def close(self, event=None):
+        if self.tw:
+            self.tw.destroy()
 
 class myGui(tk.Frame):
 
 	def __init__(self):
 		super().__init__()
+		self.initVariable()
+		self.initUI()
+	def initVariable(self):
 		self.file_types = [".jpg",".bmp",".png",".gif"]
 		self.cameraDlgs = []
 		self.image = None
 		self.bLock = True
 		self.bGetDevices = True
+		self.statusProgess = "[X:{0},Y:{1}] || [X:{2},Y:{3},W:{4},H:{5}]   ||  [Tool:{6}]    [Progess:{7}]"
 		self.baslerDevices = myCam.getBaslerDevices()
 		self.usbDevices = myCam.getAllDeviceUSB()
-		self.initUI()
-		
+		pass	
 	def initUI(self):	
 		self.master.title("Gui Tkinter")
-		self.master.bind("<Motion>",self.mouseMove)
+		# self.master.bind("<Motion>",self.mouseMove)
 		# menubar File , Camera , Setting , Font
 		menubar = Menu(self.master)
 		self.master.config(menu=menubar)
@@ -89,13 +117,15 @@ class myGui(tk.Frame):
 		self.toolReload = Button(toolbar,image=self.icont3,relief=FLAT
 			,command=lambda:self.command(RELOAD))
 		self.toolReload.pack(side=LEFT,padx=2,pady=2)
-
+		
 		toolbar.pack(side=TOP,fill=X)
-		# ===
-		self.label = Label(picontrol,width=50)
-		self.label.pack()
+		# === Canvas == 
+		self.label = Label(picontrol,width=50,bg=BLUE3)
+		self.label.pack(side=TOP,fill="x")
 		self.canvas = myCanvas(picontrol,bg=BLACK)
 		self.canvas.pack(fill="both",expand=1)
+		self.labelStatus = Label(picontrol,text=self.statusProgess,width=50,bg=BLUE3,anchor=NW)
+		self.labelStatus.pack(side=LEFT,fill="x",expand=1)
 
 		# =======Popup Menu ==========
 		popup = Menu(self.master, tearoff=0)
@@ -104,13 +134,13 @@ class myGui(tk.Frame):
 		popup.add_separator()
 		popup.add_command(label="Clear All",command=lambda:self.command(CLEAR_ALL))
 
-		def do_popup(event):
-		    try:
-		        popup.tk_popup(event.x_root+50, event.y_root+30, 0)
-		    finally:
-	        	popup.grab_release()
+		# def do_popup(event):
+		#     try:
+		#         popup.tk_popup(event.x_root+50, event.y_root+30, 0)
+		#     finally:
+	    #     	popup.grab_release()
 
-		self.canvas.bind("<Button-3>", do_popup)
+		# self.canvas.bind("<Button-3>", do_popup)
 		# ============== f2 Frame ==============
 		f21 = Frame(f2,width=300,height=550)
 		f22 = Frame(f2,width=300,height=50,bg=LIGHT_BLUE1)
@@ -145,7 +175,17 @@ class myGui(tk.Frame):
 		self.logText.pack(fill="both",expand=1,anchor="s")
 
 		# ================= pack and binding==============
-		
+		def do_popup(event):
+		    try:
+		        popup.tk_popup(event.x_root+50, event.y_root+30, 0)
+		    finally:
+	        	popup.grab_release()
+
+		CreateToolTip(self.toolReload,"Click here to reload data.")
+		CreateToolTip(self.toolMovie,"Camera.")
+		CreateToolTip(self.toolRect,"Draw rect.")
+		self.canvas.bind("<Button-3>", do_popup)
+		self.master.bind("<Motion>",self.mouseMove)
 		self.master.bind("<Key>",self.key)
 		self.master.protocol("WM_DELETE_WINDOW",self.on_closing)
 		self.pack(fill="both",expand=1)
@@ -181,19 +221,20 @@ class myGui(tk.Frame):
 		if e.char == "a":
 			self.command(RECT)
 	def mouseMove(self,e):
-		if self.image is None:
-			return
 		r = self.getGeometry(self.canvas)
 		p = [e.x_root,e.y_root]
 
-		rReload = self.getGeometry(self.toolReload)
-
-		if self.canvas.ptInRect(p,rReload):
-			print("reload")
-		else:
-			print(False ,r, rReload, p)
-		
+		# rReload = self.getGeometry(self.toolReload)
+		# self.statusProgess = "[X:{0},Y:{1}] || [X:{2},Y:{3},W:{4},H:{5}]   ||  [Tool:{6}]    [Progess:{7}]"
+		# if self.canvas.ptInRect(p,rReload):
+		# 	print("Reload")
+		# 	self.labelStatus["text"] = self.statusProgess.format("","","","","","","Reload","")
+		# else:
+		# 	self.labelStatus["text"] = self.statusProgess.format("","","","","","","","")
+		if self.image is None:
+			return
 		if not self.canvas.ptInRect(p,r):
+			# print(False,p,r)
 			return
 		if self.canvas.crop:
 			x1,y1,x2,y2 = self.canvas.crop
@@ -221,7 +262,8 @@ class myGui(tk.Frame):
 				self.image = cv2.imread(filename)
 				self.show(self.canvas,self.image)
 	def getGeometry(self,item):
-		r = [item.winfo_rootx(),item.winfo_rooty(),item.winfo_width(),item.winfo_height()]
+		r = [item.winfo_rootx(),item.winfo_rooty()
+		,item.winfo_rootx()+item.winfo_width(),item.winfo_rooty()+item.winfo_height()]
 		return r
 
 	def show(self,canvas,img):

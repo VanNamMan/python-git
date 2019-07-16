@@ -75,6 +75,8 @@ class cameraDlg(Toplevel):
         self.butLive.configure(state = NORMAL)
         pass
     def getImage(self):
+        if self.image is None :
+            return
         if self.cameraName == BASLER:
             folder = "data/%s/"%self.curDevice.sn
             if not os.path.exists(folder):
