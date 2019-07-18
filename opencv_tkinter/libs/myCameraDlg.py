@@ -1,16 +1,16 @@
 from tkinter import *
-from tkinter import ttk,filedialog,messagebox
+from tkinter import Toplevel,ttk,filedialog,messagebox
 
-from libs.myCanvas import myCanvas
+# from libs.myCanvas import myCanvas
 from libs.myDefine import *
-import libs.myCamera as myCam
+# import libs.myCamera as myCam
 from pypylon import pylon,genicam
 
 from PIL import Image,ImageTk
 import threading,time,os,cv2
 
-BASLER = "Basler"
-DINO = "Dino"
+# BASLER = "Basler"
+# DINO = "Dino"
 
 class balserCamera:
     def __init__(self,dev,bGrabbing,strSerinumber):
@@ -159,8 +159,9 @@ class cameraDlg(Toplevel):
         print ('Camera Dlg destructor called')
     def on_closing(self):
         self.bLive = False
-        self.destroy()
         print ('Camera Dlg closing called')
+        self.destroy()
+        del self
 
 # def main():
 #     root = Tk()

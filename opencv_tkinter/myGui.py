@@ -329,9 +329,8 @@ class myGui(tk.Frame):
 		self.bGetDevices = False
 		for dlg in self.cameraDlgs:
 			if dlg.bLive:
-				dlg.stop()
-				# messagebox.showinfo("Warnig!!!","Please stop camera before close!")
-				# return
+				messagebox.showinfo("Warnig!!!","Please stop camera before close!")
+				return
 		self.releaseAllDevices()
 		self.master.destroy()
 
