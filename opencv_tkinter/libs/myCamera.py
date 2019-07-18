@@ -16,14 +16,15 @@ def createDevice(dev):
 import wmi
 import re
  
-def getAllDeviceUSB():
+def getAllDeviceUSB(listName):
     A = []
     devs = []
     wql = "Select * From Win32_USBControllerDevice"
     for item in wmi.WMI().query(wql):
         q = item.Dependent.Caption
-        if re.findall("HD Pro Webcam",q) or re.findall("Dino-Lite",q):
-            A.append(q)
+        for dev in listName:
+            if re.findall(dev,q):
+                A.append(q)
     device_name = removed(A)
     for i in range(len(device_name)):
         cap = cv2.VideoCapture(i)

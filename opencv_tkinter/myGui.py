@@ -54,8 +54,18 @@ class myGui(tk.Frame):
 		self.bLock = True
 		self.bGetDevices = True
 		self.statusProgess = "[X:{0},Y:{1}] || [X:{2},Y:{3},W:{4},H:{5}]   ||  [Tool:{6}]    [Progess:{7}]"
+
+		listName = []
+		with open("device.txt","r") as iflie:
+			while True:
+				dev = iflie.readline().strip("\n")
+				if dev == "":
+					break
+				listName.append(dev)
+		print(listName)
 		self.baslerDevices = myCam.getBaslerDevices()
-		self.usbDevices = myCam.getAllDeviceUSB()
+		self.usbDevices = myCam.getAllDeviceUSB(listName)
+		print(self.usbDevices)
 		pass	
 	def initUI(self):	
 		self.master.title("Gui Tkinter")
@@ -189,7 +199,7 @@ class myGui(tk.Frame):
 		self.master.bind("<Key>",self.key)
 		self.master.protocol("WM_DELETE_WINDOW",self.on_closing)
 		self.pack(fill="both",expand=1)
-		self.master.state('zoomed')
+		# self.master.state('zoomed')
 		# start thread
 		self.threadClock()
 		
@@ -287,16 +297,16 @@ class myGui(tk.Frame):
 			self.lbClock["text"] = strtime
 			time.sleep(1)
 		pass
-	def threadGetDevices(self):
-		thread = threading.Thread(target=self.loopGetDevices)
-		thread.start()
-		pass
-	def loopGetDevices(self):
-		while self.bGetDevices:
-			self.releaseAllDevices()
-			self.baslerDevices = myCam.getBaslerDevices()
-			self.usbDevices = myCam.getAllDeviceUSB()
-			time.sleep(1)
+	# def threadGetDevices(self):
+	# 	thread = threading.Thread(target=self.loopGetDevices)
+	# 	thread.start()
+	# 	pass
+	# def loopGetDevices(self):
+	# 	while self.bGetDevices:
+	# 		self.releaseAllDevices()
+	# 		self.baslerDevices = myCam.getBaslerDevices()
+	# 		self.usbDevices = myCam.getAllDeviceUSB()
+	# 		time.sleep(1)
 		pass
 	# ========== Closing ========
 	def __del__(self):
@@ -319,8 +329,9 @@ class myGui(tk.Frame):
 		self.bGetDevices = False
 		for dlg in self.cameraDlgs:
 			if dlg.bLive:
-				messagebox.showinfo("Warnig!!!","Please stop camera before close!")
-				return
+				dlg.stop()
+				# messagebox.showinfo("Warnig!!!","Please stop camera before close!")
+				# return
 		self.releaseAllDevices()
 		self.master.destroy()
 

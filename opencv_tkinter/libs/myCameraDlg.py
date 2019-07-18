@@ -122,8 +122,8 @@ class cameraDlg(Toplevel):
                 grabResult = camera.dev.RetrieveResult(5000, pylon.TimeoutHandling_ThrowException)
                 if grabResult.GrabSucceeded():
                     self.image = grabResult.Array
-                    time.sleep(0.02)
                     self.show(self.canvas,self.image)
+                    time.sleep(0.02)
         except:
             # camera.dev.StopGrabbing()
             pass
@@ -149,8 +149,8 @@ class cameraDlg(Toplevel):
                 ret,image = camera.dev.read()
                 if ret:
                     self.image = image
-                    time.sleep(0.02)
                     self.show(self.canvas,self.image)
+                    time.sleep(0.02)
         except:
             pass
         pass
@@ -158,9 +158,9 @@ class cameraDlg(Toplevel):
     def __del__(self):
         print ('Camera Dlg destructor called')
     def on_closing(self):
-        print ('Camera Dlg closing called')
         self.bLive = False
         self.destroy()
+        print ('Camera Dlg closing called')
 
 # def main():
 #     root = Tk()
